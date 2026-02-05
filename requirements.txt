@@ -1,0 +1,38 @@
+# Core LangChain
+langchain==0.1.20              # Main framework for building LLM applications
+langchain-community==0.0.38    # Community-maintained integrations and tools
+langchain-groq==0.1.3          # LangChain integration for Groq's fast inference
+
+# LLM Providers (FREE)
+groq==0.8.0                    # Python client for Groq API (High-speed inference)
+
+# Vector Store
+chromadb==0.4.24               # Open-source vector database for local storage
+
+# Embeddings (FREE - local)
+sentence-transformers==2.7.0   # Framework for generating text embeddings locally
+torch==2.3.0                   # Deep learning backend required for sentence-transformers
+
+# Document Processing
+pypdf==4.2.0                   # Modern replacement for PyPDF2 (Used by LangChain)
+tiktoken==0.7.0                # OpenAI's fast tokeniser (useful for counting tokens)
+
+# Web Search & Parsing (FREE)
+duckduckgo-search==6.1.0       # Free internet search tool without API keys
+beautifulsoup4==4.12.3         # For parsing HTML content from web search results
+
+# Frontend
+streamlit==1.34.0              # Framework for building interactive data apps quickly
+watchdog==4.0.0                # Better file watching for Streamlit auto-reload
+
+# Configuration
+python-dotenv==1.0.1           # Loads environment variables from .env file
+pyyaml==6.0.1                  # Parses YAML configuration files
+
+# Utilities
+requests==2.31.0               # Standard library for making HTTP requests
+tqdm==4.66.3                   # Progress bar for long-running operations
+
+# Development
+jupyter==1.0.0                 # Interactive computing environment
+ipykernel==6.29.4              # Python kernel for Jupyter notebooks
