@@ -11,7 +11,8 @@ chromadb==0.4.24               # Open-source vector database for local storage
 
 # Embeddings (FREE - local)
 sentence-transformers==2.7.0   # Framework for generating text embeddings locally
-torch==2.3.0                   # Deep learning backend required for sentence-transformers
+torch==2.2.0                   # Deep learning backend required for sentence-transformers (stable Windows build)
+numpy>=1.24.0,<2.0.0           # Numerical computing library (required by many packages)
 
 # Document Processing
 pypdf==4.2.0                   # Modern replacement for PyPDF2 (Used by LangChain)

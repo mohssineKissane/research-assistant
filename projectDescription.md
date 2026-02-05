@@ -36,7 +36,7 @@ User uploads 3 research papers → asks "What are the main findings?" → gets s
 | **Framework** | LangChain | Core learning goal |
 | **UI** | Streamlit | Fast Python UI |
 | **Doc Processing** | PyPDF2 | PDF parsing |
-| **Language** | Python 3.10+ | - |
+| **Language** | Python 3.11 | Managed with uv |
 
 **Total Cost: $0**
 
@@ -86,7 +86,8 @@ research-assistant/
 ├── tests/                  # Unit tests
 ├── .env                    # API keys
 ├── config.yaml             # Configuration
-└── requirements.txt        # Dependencies
+├── pyproject.toml          # Project metadata and dependencies (uv)
+└── uv.lock                 # Locked dependency versions
 ```
 
 ---

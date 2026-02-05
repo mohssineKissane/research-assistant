@@ -64,7 +64,8 @@ research-assistant/
 │   └── vectorstore/        # Persisted Vector DB
 ├── tests/                  # Unit tests
 ├── .env                    # Environment variables (API keys)
-└── requirements.txt        # Project dependencies
+├── pyproject.toml          # Project metadata and dependencies (uv)
+└── uv.lock                 # Locked dependency versions
 ```
 
 ## 💡 Example Usage
@@ -84,18 +85,31 @@ research-assistant/
    cd research-assistant
    ```
 
-2. **Set up environment**
+2. **Install uv** (if not already installed)
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   pip install -r requirements.txt
+   pip install uv
    ```
 
-3. **Configure API Keys**
+3. **Install dependencies**
+   ```bash
+   uv sync
+   ```
+   This will create a `.venv` virtual environment with Python 3.11 and install all dependencies from `pyproject.toml`.
+
+4. **Configure API Keys**
    Create a `.env` file and add your keys (e.g., GROQ_API_KEY).
 
-4. **Run the App**
+5. **Run the App**
    ```bash
+   uv run streamlit run app/streamlit_app.py
+   ```
+   Or activate the environment first:
+   ```bash
+   # On Windows:
+   .venv\Scripts\activate
+   # On macOS/Linux:
+   source .venv/bin/activate
+   
    streamlit run app/streamlit_app.py
    ```
 
