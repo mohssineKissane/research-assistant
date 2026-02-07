@@ -17,7 +17,7 @@ class DocumentLoader:
         # Add custom metadata
         for doc in documents:
             doc.metadata['filename'] = os.path.basename(file_path)
-            doc.metadata['upload_date'] = datetime.now()
+            doc.metadata['upload_date'] = datetime.now().isoformat()  # Convert to string for ChromaDB
         
         return documents
     

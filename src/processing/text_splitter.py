@@ -8,6 +8,8 @@ class DocumentSplitter:
         chunk_size: max characters per chunk
         chunk_overlap: overlap between chunks (preserves context)
         """
+        self.chunk_size = chunk_size
+        self.chunk_overlap = chunk_overlap
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
