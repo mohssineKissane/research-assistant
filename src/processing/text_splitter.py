@@ -1,13 +1,20 @@
 from typing import List
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.schema import Document
+from src.utils.config import config
 
 class DocumentSplitter:
-    def __init__(self, chunk_size=1000, chunk_overlap=200):
+    def __init__(self, chunk_size=None, chunk_overlap=None):
         """
-        chunk_size: max characters per chunk
-        chunk_overlap: overlap between chunks (preserves context)
+        chunk_size: max characters per chunk (defaults to config)
+        chunk_overlap: overlap between chunks (defaults to config)
         """
+        # Use config values as defaults
+        if chunk_size is None:
+            chunk_size = config.chunk_size
+        if chunk_overlap is None:
+            chunk_overlap = config.chunk_overlap
+            
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.splitter = RecursiveCharacterTextSplitter(

@@ -1,0 +1,20 @@
+# Research Assistant Configuration File
+# This file centralizes all configuration for LLM, embeddings, and document processing
+
+# LLM Configuration
+llm:
+  model_name: "llama-3.1-70b-versatile"  # Groq model name
+  temperature: 0.7
+  max_tokens: 2048
+
+# Embeddings Configuration
+embeddings:
+  model_name: "sentence-transformers/all-MiniLM-L6-v2"
+  device: "cpu"  # Use 'cuda' if GPU available
+  normalize: true
+
+# Vector Store Configuration
+vectorstore:
+  chunk_size: 1000
+  chunk_overlap: 200
+  persist_directory: "./data/vectorstore"

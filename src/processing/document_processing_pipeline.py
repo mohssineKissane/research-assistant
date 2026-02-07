@@ -116,12 +116,27 @@ class PipelineConfig:
     
     def __init__(
         self,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
-        embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
-        vectorstore_path: str = "./data/vectorstore"
+        chunk_size: int = None,
+        chunk_overlap: int = None,
+        embedding_model: str = None,
+        vectorstore_path: str = None
     ):
-        self.chunk_size = chunk_size
-        self.chunk_overlap = chunk_overlap
-        self.embedding_model = embedding_model
-        self.vectorstore_path = vectorstore_path
+        from src.utils.config import config
+        
+        # Use config values as defaults
+        self.chunk_size = chunk_size if chunk_size is not None else config.chunk_size
+        self.chunk_overlap = chunk_overlap if chunk_overlap is not None else config.chunk_overlap
+        self.embedding_model = embedding_model if embedding_model is not None else config.embeddings_model_name
+        self.vectorstore_path = vectorstore_path if vectorstore_path is not None else config.vectorstore_persist_directory
+    
+    @classmethod
+    def from_yaml(cls):
+        """Create PipelineConfig from YAML configuration file"""
+        from src.utils.config import config
+        
+        return cls(
+            chunk_size=config.chunk_size,
+            chunk_overlap=config.chunk_overlap,
+            embedding_model=config.embeddings_model_name,
+            vectorstore_path=config.vectorstore_persist_directory
+        )
