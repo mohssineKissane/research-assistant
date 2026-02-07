@@ -3,7 +3,7 @@
 
 # LLM Configuration
 llm:
-  model_name: "llama-3.1-70b-versatile"  # Groq model name
+  model_name: "llama-3.3-70b-versatile"  # Updated from decommissioned llama-3.1-70b-versatile
   temperature: 0.7
   max_tokens: 2048
 
