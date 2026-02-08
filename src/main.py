@@ -22,6 +22,8 @@ from src.utils.config import config
 from src.utils.llm import llm_manager
 from src.processing.document_processing_pipeline import DocumentProcessingPipeline
 from src.chains.retrieval_qa import RetrievalQAChain
+from src.chains.conversational import ConversationalQAChain
+from src.memory.conversation_memory import ConversationMemoryManager
 from src.utils.formatters import ResponseFormatter
 
 
@@ -64,6 +66,10 @@ class ResearchAssistant:
         # These will be set when documents are loaded and QA is set up
         self.vectorstore = None  # ChromaDB instance (set by load_documents)
         self.qa_chain = None     # RetrievalQAChain instance (set by setup_qa)
+        
+        # Conversational capabilities
+        self.conversational_chain = None  # ConversationalQAChain (set by setup_conversational_qa)
+        self.memory = None                # ConversationMemoryManager (set by setup_conversational_qa)
     
     def load_documents(self, pdf_paths: List[str]):
         """
@@ -190,3 +196,188 @@ class ResearchAssistant:
         result = self.ask_question(question)
         print(ResponseFormatter.format_for_display(result))
         return result
+    
+    # ==================== Conversational QA Methods ====================
+    
+    def setup_conversational_qa(self, k=4, memory_type="buffer_window", memory_k=5):
+        """
+        Initialize the conversational QA chain with memory.
+        
+        This enables multi-turn conversations where the assistant:
+        - Remembers previous questions and answers
+        - Understands follow-up questions with pronouns
+        - Maintains context across the conversation
+        
+        Args:
+            k: Number of document chunks to retrieve per question (default: 4)
+            memory_type: Type of conversation memory to use
+                - "buffer": Store all messages (unlimited)
+                - "buffer_window": Store last N exchanges (recommended)
+            memory_k: Number of recent exchanges to remember (for buffer_window)
+                      Default: 5 (remembers last 5 Q&A pairs)
+        
+        Example:
+            >>> assistant.load_documents(["paper.pdf"])
+            >>> assistant.setup_conversational_qa()
+            >>> assistant.ask_conversational("What is this paper about?")
+            >>> assistant.ask_conversational("Tell me more about it")  # "it" = the paper
+        
+        Difference from setup_qa():
+            - setup_qa(): Each question is independent
+            - setup_conversational_qa(): Questions build on previous context
+        
+        Must call load_documents() first!
+        """
+        if self.vectorstore is None:
+            raise ValueError("No documents loaded. Call load_documents() first")
+        
+        # Create conversation memory manager
+        # This stores chat history and provides it to the chain
+        self.memory = ConversationMemoryManager(
+            memory_type=memory_type,
+            k=memory_k
+        )
+        
+        # Get LLM instance (ChatGroq)
+        llm = llm_manager.get_llm()
+        
+        # Create conversational QA chain
+        # This wraps LangChain's ConversationalRetrievalChain
+        self.conversational_chain = ConversationalQAChain(
+            llm=llm,
+            vectorstore=self.vectorstore,
+            memory=self.memory
+        )
+        
+        # Initialize the chain
+        self.conversational_chain.create_chain(k=k)
+        
+        print(f"✅ Conversational QA ready (memory: {memory_type}, k={memory_k})")
+    
+    def ask_conversational(self, question: str) -> dict:
+        """
+        Ask a question in a conversational context.
+        
+        This method supports multi-turn conversations:
+        - Follow-up questions with pronouns ("it", "that", "this")
+        - References to previous topics
+        - Contextual understanding across exchanges
+        
+        The chain automatically:
+        1. Loads conversation history from memory
+        2. Reformulates the question to be standalone
+        3. Retrieves relevant documents
+        4. Generates answer using both documents and history
+        5. Saves the Q&A to memory
+        
+        Args:
+            question: Natural language question (can reference previous context)
+            
+        Returns:
+            dict with:
+            - 'answer': The LLM's response
+            - 'citations': List of source documents with page numbers
+            - 'num_sources': Count of unique sources used
+            - 'chat_history': List of previous Q&A pairs
+            
+        Example Conversation:
+            >>> result = assistant.ask_conversational("What is neural networks?")
+            >>> print(result['answer'])
+            "Neural networks are..."
+            
+            >>> result = assistant.ask_conversational("How do they learn?")
+            >>> print(result['answer'])
+            "They learn through backpropagation..."  # Understands "they" = neural networks
+        
+        Must call setup_conversational_qa() first!
+        """
+        if self.conversational_chain is None:
+            raise ValueError("Conversational chain not initialized. Call setup_conversational_qa() first")
+        
+        # Ask the question through the conversational chain
+        # This handles question reformulation, retrieval, and memory
+        result = self.conversational_chain.ask(question)
+        
+        # Format the response with citations
+        formatted = ResponseFormatter.format_answer_with_sources(
+            result['answer'],
+            result['sources']
+        )
+        
+        # Add chat history to the result
+        formatted['chat_history'] = result['chat_history']
+        
+        return formatted
+    
+    def ask_conversational_and_display(self, question: str):
+        """
+        Ask a conversational question and print formatted output.
+        
+        Convenience method for interactive use that:
+        1. Calls ask_conversational()
+        2. Prints formatted answer with sources
+        3. Shows conversation history
+        4. Returns the result dict
+        
+        Good for notebooks and terminal sessions.
+        """
+        result = self.ask_conversational(question)
+        
+        # Print the formatted answer
+        print(ResponseFormatter.format_for_display(result))
+        
+        # Optionally show conversation history
+        if result.get('chat_history'):
+            print("\n📜 Conversation History:")
+            for i, msg in enumerate(result['chat_history'], 1):
+                role = "👤 User" if msg['role'] == 'user' else "🤖 Assistant"
+                print(f"{role}: {msg['content'][:100]}...")  # Show first 100 chars
+        
+        return result
+    
+    def reset_conversation(self):
+        """
+        Clear conversation memory and start fresh.
+        
+        Use this when:
+        - Switching to a different topic
+        - Starting a new research session
+        - The conversation context is no longer relevant
+        
+        After calling this, the next question will be treated as
+        the start of a new conversation with no prior context.
+        
+        Example:
+            >>> assistant.ask_conversational("What is AI?")
+            >>> assistant.ask_conversational("Tell me more")  # Remembers "AI"
+            >>> assistant.reset_conversation()
+            >>> assistant.ask_conversational("Tell me more")  # Doesn't know what to tell more about
+        """
+        if self.memory is None:
+            print("⚠️ No conversation memory to reset")
+            return
+        
+        self.memory.clear()
+        print("✅ Conversation memory cleared")
+    
+    def get_conversation_history(self):
+        """
+        Get the full conversation history.
+        
+        Returns:
+            List of message dicts with 'role' and 'content':
+            [
+                {'role': 'user', 'content': 'What is AI?'},
+                {'role': 'assistant', 'content': 'AI is...'},
+                ...
+            ]
+            
+        Useful for:
+        - Displaying chat history in UI
+        - Exporting conversation transcripts
+        - Debugging conversation flow
+        """
+        if self.memory is None:
+            return []
+        
+        return self.memory.get_history()

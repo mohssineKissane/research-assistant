@@ -116,3 +116,48 @@ Answer:"""
             template=template,
             input_variables=["context", "question"]
         )
+    
+    @staticmethod
+    def get_conversational_prompt():
+        """
+        Prompt for conversational QA with chat history.
+        
+        This prompt is designed for multi-turn conversations where:
+        - The assistant remembers previous exchanges
+        - Follow-up questions can reference earlier topics
+        - Context comes from both documents and conversation history
+        
+        Variables:
+            {chat_history}: Previous Q&A pairs from memory
+            {context}: Retrieved document chunks
+            {question}: Current user question
+            
+        The prompt instructs the LLM to:
+        - Use conversation history to understand pronouns and references
+        - Answer based on provided document context
+        - Acknowledge when referring to previous topics
+        - Maintain conversational flow
+        """
+        template = """You are a helpful research assistant having a conversation.
+
+    Previous conversation:
+    {chat_history}
+
+    Current context from documents:
+    {context}
+
+    Current question: {question}
+
+    Instructions:
+    - Use the conversation history to understand context
+    - If the question refers to previous topics, acknowledge that
+    - Answer based on the provided context
+    - Cite sources with [Source: filename, Page: X]
+    - If you don't know, say so
+
+    Answer:"""
+        
+        return PromptTemplate(
+            template=template,
+            input_variables=["chat_history", "context", "question"]
+        )
