@@ -26,3 +26,12 @@ data/chroma_db/
 
 # Streamlit
 .streamlit/
+
+# Agent
+.agent/
+
+# Notebooks
+notebooks/
+
+# Testing
+test_results/
