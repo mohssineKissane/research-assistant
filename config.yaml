@@ -3,7 +3,8 @@
 
 # LLM Configuration
 llm:
-  model_name: "llama-3.3-70b-versatile"  # Updated from decommissioned llama-3.1-70b-versatile
+  model_name: "llama-3.1-8b-instant"  # Faster, uses fewer tokens (good for development)
+  # Alternative: "llama-3.3-70b-versatile" (better quality, but slower and uses more tokens)
   temperature: 0.7
   max_tokens: 2048
 
@@ -18,3 +19,10 @@ vectorstore:
   chunk_size: 1000
   chunk_overlap: 200
   persist_directory: "./data/vectorstore"
+
+# Web Search Configuration
+web_search:
+  provider: "tavily"  # Using Tavily - designed for AI agents
+  max_results: 5
+  # Tavily API (get free key at https://tavily.com)
+  tavily_api_key: "${TAVILY_API_KEY}"

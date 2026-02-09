@@ -26,6 +26,10 @@ from src.chains.conversational import ConversationalQAChain
 from src.memory.conversation_memory import ConversationMemoryManager
 from src.utils.formatters import ResponseFormatter
 
+# Agent imports for autonomous decision-making
+from src.agent.research_agent import ResearchAgent
+from src.agent.agent_config import AgentConfig
+
 
 class ResearchAssistant:
     """
@@ -35,6 +39,7 @@ class ResearchAssistant:
     - DocumentProcessingPipeline: Loads, splits, and indexes documents
     - RetrievalQAChain: Handles question-answering with retrieval
     - ResponseFormatter: Formats answers with citations
+    - ResearchAgent: Autonomous agent that selects tools to answer questions
     
     The RAG pattern allows the LLM to answer questions based on YOUR documents,
     not just its training data. This prevents hallucination and grounds answers in facts.
@@ -49,6 +54,7 @@ class ResearchAssistant:
         - Pipeline: Ready to process documents (but no docs loaded yet)
         - VectorStore: None until documents are loaded
         - QA Chain: None until setup_qa() is called
+        - Agent: None until setup_agent() is called
         """
         from src.processing.document_processing_pipeline import PipelineConfig
         
@@ -70,6 +76,10 @@ class ResearchAssistant:
         # Conversational capabilities
         self.conversational_chain = None  # ConversationalQAChain (set by setup_conversational_qa)
         self.memory = None                # ConversationMemoryManager (set by setup_conversational_qa)
+        
+        # Agent components - for autonomous tool selection and decision-making
+        self.agent = None                 # ResearchAgent instance (set by setup_agent)
+        self.agent_config = AgentConfig() # Default agent configuration
     
     def load_documents(self, pdf_paths: List[str]):
         """
@@ -381,3 +391,125 @@ class ResearchAssistant:
             return []
         
         return self.memory.get_history()
+    
+    # ==================== Agent Methods (Autonomous Decision-Making) ====================
+    
+    def setup_agent(self):
+        """
+        Initialize the research agent with autonomous tool selection.
+        
+        The agent uses the ReAct (Reasoning + Acting) pattern to:
+        1. Analyze the user's question
+        2. Decide which tool(s) to use (document search, web search, summarization)
+        3. Execute the selected tool(s)
+        4. Synthesize a final answer
+        
+        Difference from setup_qa():
+            - setup_qa(): Always uses document retrieval (fixed approach)
+            - setup_agent(): Autonomously decides which tools to use (flexible approach)
+        
+        The agent can:
+        - Search documents when needed
+        - Search the web for current information
+        - Summarize content when requested
+        - Combine multiple tools in a single query
+        
+        Example Agent Reasoning:
+            User: "What does the paper say about AI, and what's new in 2024?"
+            
+            Thought: Need document info first, then current events
+            Action 1: search_documents("AI")
+            Observation 1: [Found AI info in paper]
+            
+            Thought: Now need current 2024 developments
+            Action 2: search_web("AI developments 2024")
+            Observation 2: [Found recent articles]
+            
+            Final Answer: [Combines both sources]
+        
+        Must call load_documents() first!
+        
+        Returns:
+            The initialized agent executor
+        """
+        if self.vectorstore is None:
+            raise ValueError("No documents loaded. Call load_documents() first")
+        
+        # Get LLM with agent-appropriate temperature
+        # Agent reasoning benefits from slightly higher temperature for flexibility
+        llm = llm_manager.get_llm(
+            temperature=self.agent_config.temperature
+        )
+        
+        # Create the research agent with tools
+        research_agent = ResearchAgent(llm, self.vectorstore)
+        
+        # Initialize the agent executor
+        # This creates the ReAct loop (Thought → Action → Observation)
+        self.agent = research_agent.create_agent(
+            agent_type=self.agent_config.agent_type,
+            verbose=self.agent_config.verbose  # Shows reasoning steps if True
+        )
+        
+        print("✓ Research agent ready")
+        print(f"  Agent type: {self.agent_config.agent_type}")
+        print(f"  Tools available: document_search, web_search, summarize_content")
+        print(f"  Verbose mode: {self.agent_config.verbose}")
+        
+        return self.agent
+    
+    def ask_agent(self, query: str) -> str:
+        """
+        Ask the agent a question - agent autonomously decides which tools to use.
+        
+        Unlike ask_question() which always uses document retrieval,
+        the agent analyzes the query and chooses appropriate tools:
+        - Document-specific questions → Uses document_search
+        - Current events questions → Uses web_search
+        - Summary requests → Uses summarize_content
+        - Complex questions → May use multiple tools
+        
+        The agent's decision-making process (when verbose=True):
+            > Entering new AgentExecutor chain...
+            Thought: I need to search the documents for this information
+            Action: search_documents
+            Action Input: "transformers architecture"
+            Observation: [Document search results]
+            Thought: I now have enough information to answer
+            Final Answer: [Synthesized answer]
+        
+        Args:
+            query: Natural language question or instruction
+            
+        Returns:
+            String containing the agent's final answer
+            
+        Example:
+            >>> assistant.setup_agent()
+            >>> answer = assistant.ask_agent("What does the paper say about transformers?")
+            >>> print(answer)
+            "According to the paper, transformers are..."
+            
+            >>> answer = assistant.ask_agent("Summarize all documents")
+            >>> print(answer)
+            "The documents cover the following topics..."
+        
+        Must call setup_agent() first!
+        """
+        if self.agent is None:
+            raise ValueError("Agent not initialized. Call setup_agent() first")
+        
+        print(f"\n{'='*60}")
+        print(f"QUERY: {query}")
+        print(f"{'='*60}\n")
+        
+        # Run the agent - it will autonomously select and use tools
+        # The ReAct loop continues until the agent has a final answer
+        result = self.agent.run(query)
+        
+        print(f"\n{'='*60}")
+        print(f"FINAL ANSWER:")
+        print(result)
+        print(f"{'='*60}\n")
+        
+        return result
