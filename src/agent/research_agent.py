@@ -40,7 +40,7 @@ class ResearchAgent:
     - Iterate until the question is answered
     """
     
-    def __init__(self, llm, vectorstore, tools_list=None):
+    def __init__(self, llm, vectorstore, tools_list=None, memory=None):
         """
         Initialize the research agent.
         
@@ -48,9 +48,12 @@ class ResearchAgent:
             llm: Language model for agent reasoning (decides which tools to use)
             vectorstore: ChromaDB instance for document search tool
             tools_list: Optional custom list of Tool objects. If None, creates default tools.
+            memory: Optional ConversationMemoryManager for conversation history.
+                    If provided, agent will remember previous exchanges.
         """
         self.llm = llm
         self.vectorstore = vectorstore
+        self.memory = memory
         # Use provided tools or create standard set (document search, web search, summarization)
         self.tools = tools_list or self._create_default_tools()
         self.agent = None
@@ -95,15 +98,21 @@ class ResearchAgent:
         
         Args:
             agent_type: Type of agent reasoning pattern
-                - "zero-shot-react-description": Uses tool descriptions to decide (recommended)
+                - "zero-shot-react-description": Uses tool descriptions to decide (no memory)
                 - "conversational-react-description": Same but with conversation memory
                 - "react-docstore": Specialized for document Q&A
+                Note: If memory is provided in __init__, this will automatically use
+                      "conversational-react-description" regardless of this parameter.
             verbose: If True, prints the agent's reasoning steps (useful for debugging)
             **kwargs: Additional arguments passed to initialize_agent (e.g. max_iterations, agent_kwargs)
         
         Returns:
             Initialized agent executor ready to answer questions
         """
+        # If memory is provided, force conversational agent type
+        if self.memory is not None:
+            agent_type = "conversational-react-description"
+        
         # Map string agent type to LangChain AgentType enum
         agent_type_map = {
             "zero-shot-react-description": AgentType.ZERO_SHOT_REACT_DESCRIPTION,
@@ -116,17 +125,24 @@ class ResearchAgent:
             AgentType.ZERO_SHOT_REACT_DESCRIPTION
         )
         
+        # Prepare initialization parameters
+        init_params = {
+            'tools': self.tools,
+            'llm': self.llm,
+            'agent': selected_agent_type,
+            'verbose': verbose,
+            'max_iterations': kwargs.get('max_iterations', 5),
+            'early_stopping_method': kwargs.get('early_stopping_method', "generate"),
+            'handle_parsing_errors': kwargs.get('handle_parsing_errors', True),
+            'agent_kwargs': kwargs.get('agent_kwargs', None)
+        }
+        
+        # Add memory if provided (only for conversational agents)
+        if self.memory is not None:
+            init_params['memory'] = self.memory.get_memory()
+        
         # Initialize the agent with tools and configuration
-        self.agent = initialize_agent(
-            tools=self.tools,
-            llm=self.llm,
-            agent=selected_agent_type,
-            verbose=verbose,  # Shows "Thought/Action/Observation" loop when True
-            max_iterations=kwargs.get('max_iterations', 5),  # Prevent infinite loops
-            early_stopping_method=kwargs.get('early_stopping_method', "generate"),
-            handle_parsing_errors=kwargs.get('handle_parsing_errors', True),
-            agent_kwargs=kwargs.get('agent_kwargs', None)  # Custom prompts (prefix/suffix)
-        )
+        self.agent = initialize_agent(**init_params)
         
         return self.agent
     
@@ -185,3 +201,34 @@ class ResearchAgent:
             return result
         except Exception as e:
             return {"error": str(e)}
+    
+    def reset_memory(self):
+        """
+        Clear the agent's conversation memory.
+        
+        Use this to:
+        - Start a fresh conversation
+        - Reset context when switching topics
+        - Clear memory between sessions
+        
+        Only works if memory was provided during initialization.
+        """
+        if self.memory is not None:
+            self.memory.clear()
+    
+    def get_memory_history(self):
+        """
+        Get the agent's conversation history.
+        
+        Returns:
+            List of message dicts with 'role' and 'content', or empty list if no memory.
+            
+        Example:
+            [
+                {'role': 'user', 'content': 'What is AI?'},
+                {'role': 'assistant', 'content': 'AI is...'},
+            ]
+        """
+        if self.memory is not None:
+            return self.memory.get_history()
+        return []

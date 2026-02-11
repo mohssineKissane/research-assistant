@@ -463,6 +463,78 @@ class ResearchAssistant:
         
         return self.agent
     
+    def setup_agent_with_memory(self, memory_type="buffer_window", memory_k=5):
+        """
+        Initialize the research agent with conversation memory.
+        
+        This creates an agent that:
+        - Remembers previous questions and answers
+        - Understands follow-up questions with pronouns
+        - Autonomously selects tools (document search, web search, summarization)
+        - Combines the power of agent decision-making with conversational context
+        
+        Args:
+            memory_type: Type of conversation memory to use
+                - "buffer": Store all messages (unlimited)
+                - "buffer_window": Store last N exchanges (recommended)
+            memory_k: Number of recent exchanges to remember (for buffer_window)
+                      Default: 5 (remembers last 5 Q&A pairs)
+        
+        Example:
+            >>> assistant.load_documents(["paper.pdf"])
+            >>> assistant.setup_agent_with_memory()
+            >>> assistant.ask_agent("What is this paper about?")
+            >>> assistant.ask_agent("Tell me more about it")  # "it" = the paper
+        
+        Difference from setup_agent():
+            - setup_agent(): Each question is independent (no memory)
+            - setup_agent_with_memory(): Questions build on previous context
+        
+        Difference from setup_conversational_qa():
+            - setup_conversational_qa(): Fixed approach (always retrieves from docs)
+            - setup_agent_with_memory(): Autonomous tool selection + memory
+        
+        Must call load_documents() first!
+        
+        Returns:
+            The initialized agent executor with memory
+        """
+        if self.vectorstore is None:
+            raise ValueError("No documents loaded. Call load_documents() first")
+        
+        # Create conversation memory manager
+        # This stores chat history and provides it to the agent
+        agent_memory = ConversationMemoryManager(
+            memory_type=memory_type,
+            k=memory_k
+        )
+        
+        # Get LLM with agent-appropriate temperature
+        llm = llm_manager.get_llm(
+            temperature=self.agent_config.temperature
+        )
+        
+        # Get all agent configuration
+        agent_kwargs = self.agent_config.get_agent_kwargs()
+        
+        # Create the research agent with tools AND memory
+        research_agent = ResearchAgent(llm, self.vectorstore, memory=agent_memory)
+        
+        # Initialize the agent executor
+        # The agent will automatically use conversational mode because memory is provided
+        self.agent = research_agent.create_agent(
+            agent_type=self.agent_config.agent_type,
+            **agent_kwargs
+        )
+        
+        print("✓ Research agent with memory ready")
+        print(f"  Agent type: conversational-react-description (auto-selected)")
+        print(f"  Tools available: document_search, web_search, summarize_content")
+        print(f"  Memory: {memory_type}, k={memory_k}")
+        print(f"  Verbose mode: {self.agent_config.verbose}")
+        
+        return self.agent
+    
     def ask_agent(self, query: str) -> str:
         """
         Ask the agent a question - agent autonomously decides which tools to use.
