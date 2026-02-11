@@ -60,12 +60,16 @@ def initialize_session_state():
         # Settings
         # These control how the assistant works
         st.session_state.settings = {
+            'mode': 'simple',                    # 'simple' or 'agent'
             'k': 4,                          # Number of chunks to retrieve
             'memory_type': 'buffer_window',  # Type of conversation memory
             'memory_k': 5,                   # Number of exchanges to remember
             'show_sources': True,            # Display source citations
             'show_timestamps': True          # Show message timestamps
         }
+        
+        # Mode-specific state
+        st.session_state.agent_initialized = False  # Whether agent mode is set up
         
         # UI state
         st.session_state.current_tab = 'Chat'  # Active tab

@@ -159,6 +159,7 @@ def process_pending_question():
     Process the last user question if waiting for response.
     
     This is called after the UI rerun to show loading state.
+    It routes the question to the appropriate handler based on the selected mode.
     """
     if st.session_state.waiting_for_response:
         # Get the last user message
@@ -167,8 +168,27 @@ def process_pending_question():
             question = chat_history[-1]['content']
             
             try:
-                # Get response from assistant
-                result = st.session_state.assistant.ask_conversational(question)
+                # Get current mode
+                mode = st.session_state.settings['mode']
+                
+                # Get response from assistant based on mode
+                if mode == 'simple':
+                    # Simple Mode: fast, document-focused
+                    result = st.session_state.assistant.ask_conversational(question)
+                else:
+                    # Agent Mode: intelligent, multi-tool
+                    # Note: Agent currently returns a string, while conversational returns a dict
+                    # We need to standardize this
+                    agent_response = st.session_state.assistant.ask_agent(question)
+                    
+                    # Standardize format for display
+                    if isinstance(agent_response, str):
+                        result = {
+                            'answer': agent_response,
+                            'sources': []  # Agent sources are usually embedded in text
+                        }
+                    else:
+                        result = agent_response
                 
                 # Add assistant response
                 sources = result.get('sources', []) if st.session_state.settings['show_sources'] else []
