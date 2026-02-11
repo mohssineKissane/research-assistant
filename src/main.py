@@ -441,14 +441,19 @@ class ResearchAssistant:
             temperature=self.agent_config.temperature
         )
         
+        # Get all agent configuration (verbose, max_iterations, prompts, etc.)
+        # The config class now automatically handles default prompts if needed
+        agent_kwargs = self.agent_config.get_agent_kwargs()
+        
         # Create the research agent with tools
         research_agent = ResearchAgent(llm, self.vectorstore)
         
         # Initialize the agent executor
         # This creates the ReAct loop (Thought → Action → Observation)
+        # We pass **agent_kwargs to inject config like max_iterations and custom prompts
         self.agent = research_agent.create_agent(
             agent_type=self.agent_config.agent_type,
-            verbose=self.agent_config.verbose  # Shows reasoning steps if True
+            **agent_kwargs
         )
         
         print("✓ Research agent ready")

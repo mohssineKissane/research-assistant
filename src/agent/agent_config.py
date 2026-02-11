@@ -85,6 +85,10 @@ class AgentConfig:
         This method converts the config into the format expected by
         LangChain's initialize_agent() function.
         
+        It automatically handles default prompts:
+        - If custom prefix/suffix is set, uses that
+        - If not, uses the default research agent prompts
+        
         Returns:
             Dict of agent initialization parameters
         """
@@ -95,9 +99,13 @@ class AgentConfig:
             'early_stopping_method': 'generate'  # Stop when confident answer is found
         }
         
-        # Add custom prompts if provided
-        if self.agent_prefix:
-            kwargs['agent_kwargs'] = {'prefix': self.agent_prefix}
+        # Prepare agent prompts (use custom if set, else defaults)
+        agent_kwargs = {
+            'prefix': self.agent_prefix or self.get_research_agent_prefix(),
+            'suffix': self.agent_suffix or self.get_research_agent_suffix()
+        }
+            
+        kwargs['agent_kwargs'] = agent_kwargs
         
         return kwargs  
     

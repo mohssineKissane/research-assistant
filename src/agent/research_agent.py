@@ -82,7 +82,7 @@ class ResearchAgent:
         
         return tools
     
-    def create_agent(self, agent_type="zero-shot-react-description", verbose=True):
+    def create_agent(self, agent_type="zero-shot-react-description", verbose=True, **kwargs):
         """
         Create and initialize the agent executor.
         
@@ -99,6 +99,7 @@ class ResearchAgent:
                 - "conversational-react-description": Same but with conversation memory
                 - "react-docstore": Specialized for document Q&A
             verbose: If True, prints the agent's reasoning steps (useful for debugging)
+            **kwargs: Additional arguments passed to initialize_agent (e.g. max_iterations, agent_kwargs)
         
         Returns:
             Initialized agent executor ready to answer questions
@@ -121,9 +122,10 @@ class ResearchAgent:
             llm=self.llm,
             agent=selected_agent_type,
             verbose=verbose,  # Shows "Thought/Action/Observation" loop when True
-            max_iterations=5,  # Prevent infinite loops (max 5 tool calls)
-            early_stopping_method="generate",  # Stop when confident answer is found
-            handle_parsing_errors=True  # Gracefully handle malformed LLM outputs
+            max_iterations=kwargs.get('max_iterations', 5),  # Prevent infinite loops
+            early_stopping_method=kwargs.get('early_stopping_method', "generate"),
+            handle_parsing_errors=kwargs.get('handle_parsing_errors', True),
+            agent_kwargs=kwargs.get('agent_kwargs', None)  # Custom prompts (prefix/suffix)
         )
         
         return self.agent
