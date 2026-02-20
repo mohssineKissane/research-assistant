@@ -60,7 +60,7 @@ def initialize_session_state():
         # Settings
         # These control how the assistant works
         st.session_state.settings = {
-            'mode': 'simple',                    # 'simple' or 'agent'
+            'mode': 'agent',                     # 'simple' or 'agent'
             'k': 4,                          # Number of chunks to retrieve
             'memory_type': 'buffer_window',  # Type of conversation memory
             'memory_k': 5,                   # Number of exchanges to remember

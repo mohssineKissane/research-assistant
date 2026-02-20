@@ -126,12 +126,21 @@ class WebSearchTool(BaseTool):
                 return "No web results found for this query."
             
             # Format results for the agent
+            # Truncate content to keep token usage under model limits
+            MAX_CONTENT_CHARS = 400
+            MAX_URL_CHARS = 100
             output = "Found the following information from the web:\n\n"
             
             for i, result in enumerate(response['results'], 1):
                 title = result.get('title', 'No title')
                 content = result.get('content', 'No description')
                 url = result.get('url', '')
+                
+                # Truncate long content and URLs to control token usage
+                if len(content) > MAX_CONTENT_CHARS:
+                    content = content[:MAX_CONTENT_CHARS] + "..."
+                if len(url) > MAX_URL_CHARS:
+                    url = url[:MAX_URL_CHARS] + "..."
                 
                 # Provide structured output so agent can cite sources
                 output += f"[{i}] {title}\n"

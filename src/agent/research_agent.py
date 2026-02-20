@@ -78,7 +78,7 @@ class ResearchAgent:
             # Search uploaded PDFs - agent uses this for document-specific questions
             DocumentSearchTool(vectorstore=self.vectorstore, llm=self.llm),
             # Search the web - agent uses this for current events or missing information
-            WebSearchTool(max_results=5),
+            WebSearchTool(max_results=3),
             # Summarize content - agent uses this when user asks for summaries
             SummarizationTool(llm=self.llm, vectorstore=self.vectorstore)
         ]
@@ -126,6 +126,19 @@ class ResearchAgent:
         )
         
         # Prepare initialization parameters
+        # For conversational-react-description: its suffix MUST include {chat_history},
+        # {input}, {agent_scratchpad}. We provide dedicated prompts for that agent type.
+        # For zero-shot: use the custom prefix/suffix from kwargs if provided.
+        from src.agent.agent_config import AgentConfig
+
+        if selected_agent_type == AgentType.CONVERSATIONAL_REACT_DESCRIPTION:
+            conversational_agent_kwargs = {
+                'prefix': AgentConfig.get_conversational_agent_prefix(),
+                'suffix': AgentConfig.get_conversational_agent_suffix(),
+            }
+        else:
+            conversational_agent_kwargs = kwargs.get('agent_kwargs') or None
+
         init_params = {
             'tools': self.tools,
             'llm': self.llm,
@@ -134,8 +147,10 @@ class ResearchAgent:
             'max_iterations': kwargs.get('max_iterations', 5),
             'early_stopping_method': kwargs.get('early_stopping_method', "generate"),
             'handle_parsing_errors': kwargs.get('handle_parsing_errors', True),
-            'agent_kwargs': kwargs.get('agent_kwargs', None)
         }
+
+        if conversational_agent_kwargs is not None:
+            init_params['agent_kwargs'] = conversational_agent_kwargs
         
         # Add memory if provided (only for conversational agents)
         if self.memory is not None:

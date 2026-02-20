@@ -3,10 +3,10 @@
 
 # LLM Configuration
 llm:
-  model_name: "llama-3.1-8b-instant"  # Faster, uses fewer tokens (good for development)
-  # Alternative: "llama-3.3-70b-versatile" (better quality, but slower and uses more tokens)
+  model_name: "llama-3.3-70b-versatile"  # Better quality and higher context limit
+  # Alternative: "llama-3.1-8b-instant" (faster, but 6000 TPM limit causes errors with large tool outputs)
   temperature: 0.7
-  max_tokens: 2048
+  max_tokens: 1024
 
 # Embeddings Configuration
 embeddings:
@@ -23,6 +23,6 @@ vectorstore:
 # Web Search Configuration
 web_search:
   provider: "tavily"  # Using Tavily - designed for AI agents
-  max_results: 5
+  max_results: 3      # Reduced from 5 to limit token usage
   # Tavily API (get free key at https://tavily.com)
   tavily_api_key: "${TAVILY_API_KEY}"

@@ -503,10 +503,11 @@ class ResearchAssistant:
             raise ValueError("No documents loaded. Call load_documents() first")
         
         # Create conversation memory manager
-        # This stores chat history and provides it to the agent
+        # AgentExecutor outputs under key 'output', not 'answer'
         agent_memory = ConversationMemoryManager(
             memory_type=memory_type,
-            k=memory_k
+            k=memory_k,
+            output_key="output"
         )
         
         # Get LLM with agent-appropriate temperature

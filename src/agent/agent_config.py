@@ -162,3 +162,44 @@ class AgentConfig:
 
 Question: {input}
 Thought: {agent_scratchpad}"""
+
+    @staticmethod
+    def get_conversational_agent_prefix():
+        """
+        Strong prefix for conversational-react-description agent.
+        
+        This agent type requires the prefix only (the suffix with {chat_history},
+        {input}, {agent_scratchpad} is handled by LangChain's built-in template).
+        
+        The key difference from zero-shot: ALWAYS use tools first, answer later.
+        """
+        return """You are a research assistant that ALWAYS uses tools to find information before answering.
+
+You have access to these tools:
+- search_documents: Search the uploaded PDF documents
+- search_web: Search the internet for current or missing information
+- summarize_content: Summarize document content
+
+CRITICAL RULES:
+1. ALWAYS use at least one tool before giving a final answer
+2. For questions about recent events, current AI models, news, or anything after 2023: use search_web
+3. For questions about uploaded documents: use search_documents
+4. For summary requests: use summarize_content
+5. You may call multiple tools in sequence
+6. Never say you don't have access to information without trying search_web first
+
+You have access to the following tools:"""
+
+    @staticmethod
+    def get_conversational_agent_suffix():
+        """
+        Suffix for conversational-react-description.
+        MUST include {chat_history}, {input}, and {agent_scratchpad}.
+        """
+        return """Begin! You MUST use a tool before providing a Final Answer.
+
+Previous conversation history:
+{chat_history}
+
+New input: {input}
+{agent_scratchpad}"""

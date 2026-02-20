@@ -40,7 +40,7 @@ class ConversationMemoryManager:
     follow-up questions in context of previous exchanges.
     """
     
-    def __init__(self, memory_type="buffer_window", k=5):
+    def __init__(self, memory_type="buffer_window", k=5, output_key="answer"):
         """
         Initialize conversation memory.
         
@@ -51,6 +51,9 @@ class ConversationMemoryManager:
             k: Number of recent message pairs to remember (for buffer_window)
                - k=3: Remember last 3 Q&A pairs (6 messages)
                - k=5: Remember last 5 Q&A pairs (10 messages) - default
+            output_key: Which output key to save to memory.
+                - "answer": for ConversationalRetrievalChain (default)
+                - "output": for AgentExecutor (ReAct agents)
                
         Why buffer_window?
             Long conversations can exceed token limits. By keeping only
@@ -68,7 +71,7 @@ class ConversationMemoryManager:
             self.memory = ConversationBufferMemory(
                 memory_key="chat_history",      # Key used in prompts
                 return_messages=True,            # Return as Message objects (not strings)
-                output_key="answer"              # Which chain output to store
+                output_key=output_key            # Which chain output to store
             )
         else:
             # Window memory - stores last k exchanges
@@ -78,7 +81,7 @@ class ConversationMemoryManager:
                 k=k,                             # Number of exchanges to remember
                 memory_key="chat_history",       # Key used in prompts
                 return_messages=True,            # Return as Message objects
-                output_key="answer"              # Which chain output to store
+                output_key=output_key            # Which chain output to store
             )
     
     def get_memory(self):
