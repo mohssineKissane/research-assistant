@@ -25,7 +25,7 @@ data/chroma_db/
 *.db
 
 # Streamlit
-.streamlit/
+.streamlit/secrets.toml
 
 # Agent
 .agent/

@@ -1,0 +1,12 @@
+[server]
+maxUploadSize = 200          # Max file upload size in MB
+enableXsrfProtection = true
+
+[theme]
+primaryColor = "#1f77b4"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F5F5"
+textColor = "#212121"
+
+[browser]
+gatherUsageStats = false

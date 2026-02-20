@@ -82,9 +82,19 @@ class Config:
         if self._initialized:
             return
         
-        # Load environment variables from .env file
-        # This makes GROQ_API_KEY available via os.getenv()
+        # Load environment variables from .env file (local development)
         load_dotenv()
+
+        # On Streamlit Cloud, secrets live in st.secrets instead of .env
+        # Inject them into os.environ so all os.getenv() calls work seamlessly
+        try:
+            import streamlit as st
+            for key in ("GROQ_API_KEY", "TAVILY_API_KEY"):
+                if key in st.secrets and not os.getenv(key):
+                    os.environ[key] = st.secrets[key]
+        except Exception:
+            # Not running in Streamlit context (e.g. CLI / notebooks) — skip
+            pass
         
         # Find and load config.yaml
         # Path is relative to this file: ../../config.yaml
