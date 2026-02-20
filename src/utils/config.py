@@ -235,11 +235,17 @@ class Config:
     def vectorstore_persist_directory(self):
         """
         Get directory for persisting ChromaDB data.
-        
-        ChromaDB saves data here so you can reload
-        without re-indexing documents.
+
+        Returns an absolute path derived from the project root so it works
+        correctly regardless of the working directory (local or Streamlit Cloud).
         """
-        return self._config.get('vectorstore', {}).get('persist_directory', './data/vectorstore')
+        raw = self._config.get('vectorstore', {}).get('persist_directory', './data/vectorstore')
+        # If the path is relative, resolve it relative to the project root
+        path = Path(raw)
+        if not path.is_absolute():
+            project_root = Path(__file__).parent.parent.parent
+            path = project_root / raw.lstrip('./')
+        return str(path)
 
 
 # Create global config instance (singleton)

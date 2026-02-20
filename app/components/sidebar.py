@@ -111,8 +111,8 @@ def process_documents(uploaded_files):
     4. Updates state
     """
     try:
-        # Create temp directory for uploads
-        temp_dir = Path("data/temp_uploads")
+        # Use an absolute path so it works on both local and Streamlit Cloud
+        temp_dir = Path(__file__).parent.parent.parent / "data" / "temp_uploads"
         temp_dir.mkdir(parents=True, exist_ok=True)
         
         # Save uploaded files

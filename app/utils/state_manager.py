@@ -21,6 +21,21 @@ from datetime import datetime
 import uuid
 
 
+@st.cache_resource(show_spinner="⏳ Loading AI models (first load only)...")
+def get_research_assistant():
+    """
+    Create and cache the ResearchAssistant instance.
+
+    @st.cache_resource ensures this runs only ONCE per server lifetime,
+    not on every new user session. This avoids re-downloading the
+    HuggingFace embedding model (~90MB) on every page load.
+
+    All users share this instance, which is fine for a single-user demo.
+    The vectorstore / agent are set per-upload via session_state references.
+    """
+    return ResearchAssistant()
+
+
 def initialize_session_state():
     """
     Initialize all session state variables.
@@ -33,9 +48,9 @@ def initialize_session_state():
         to initialize once, not on every rerun.
     """
     if 'initialized' not in st.session_state:
-        # Core assistant instance
-        # This is expensive to create, so we only do it once
-        st.session_state.assistant = ResearchAssistant()
+        # Core assistant instance — reuse the cached singleton so the
+        # HuggingFace embedding model is only downloaded once per server start
+        st.session_state.assistant = get_research_assistant()
         
         # Session management
         # Each session is a separate conversation with its own memory
