@@ -1,123 +1,160 @@
-# Personal Research Assistant with Multi-Source Analysis
+# Research Assistant
 
-A powerful assistant that takes a research question, searches multiple sources (PDFs, web), synthesizes information, and produces a structured report with citations.
+A personal research assistant that answers questions from uploaded PDFs and the live web. Built with LangChain, Groq, and Streamlit.
 
-## 🚀 Core Functionality
+🌐 **Live Demo:** [research-assistantgit-mmgpmwqhp9bnhhpzy64yrh.streamlit.app](https://research-assistantgit-mmgpmwqhp9bnhhpzy64yrh.streamlit.app/)
 
-- **Multi-Source Analysis**: Combine information from uploaded documents (PDFs) and live web searches.
-- **Natural Language Q&A**: Ask questions about your documents in plain English.
-- **Smart Citations**: Get answers with precise source citations (document name, page number).
-- **Contextual Memory**: Have multi-turn conversations where the assistant remembers previous details.
-- **Automated Reporting**: Export your research findings as a structured Markdown report.
-- **Intelligent Agent**: Automatically decides when to use local documents vs. searching the web for broader context.
+---
+
+## 🎯 Two Modes
+
+### 🔹 Simple Mode (RAG)
+Fast, document-focused conversational Q&A.
+- Always retrieves from your uploaded PDFs
+- Answers with source citations (document + page number)
+- Remembers conversation history
+- Best for: questions where the answer is in your documents
+
+### 🤖 Agent Mode (RAG + Web + Summarization) — Default
+Autonomous research agent using the ReAct pattern (Reasoning + Acting).
+- Decides which tool to use based on the question
+- Searches uploaded PDFs when the answer is there
+- Searches the live web (Tavily) for current events or missing information
+- Summarizes document content on request
+- Remembers conversation history
+- Best for: complex research requiring multiple sources or up-to-date information
+
+---
+
+## 🚀 Features
+
+- **PDF upload & indexing** — Upload one or more PDFs; they are chunked, embedded, and indexed in ChromaDB
+- **Semantic search** — Questions are matched to the most relevant document chunks
+- **Source citations** — Every document answer includes the source file and page number
+- **Conversational memory** — Multi-turn chat; the assistant understands follow-up questions
+- **Live web search** — Tavily API fetches current information the documents don't contain
+- **Session management** — Create and switch between multiple conversation sessions
+- **Streamlit UI** — Clean chat interface with sidebar settings
+
+---
 
 ## 🛠️ Tech Stack
 
-This project is built using a completely free and open-source stack:
+| Component | Technology |
+|-----------|------------|
+| **LLM** | Groq — `llama-3.3-70b-versatile` |
+| **Embeddings** | HuggingFace `all-MiniLM-L6-v2` (runs locally) |
+| **Vector DB** | ChromaDB (local) |
+| **Web Search** | Tavily API |
+| **Framework** | LangChain (chains, agents, memory) |
+| **UI** | Streamlit |
+| **Doc Processing** | PyPDF |
+| **Package Manager** | uv |
 
-| Component | Technology | Description |
-|-----------|------------|-------------|
-| **LLM** | Groq (mixtral-8x7b-32768) | High-performance open-source model |
-| **Embeddings** | HuggingFace (sentence-transformers) | Local semantic search capabilities |
-| **Vector DB** | Chroma | Local vector storage |
-| **Web Search** | DuckDuckGo | Public web search without API keys |
-| **Framework** | LangChain | Orchestration of chains and agents |
-| **UI** | Streamlit | Interactive web interface |
-| **Doc Processing** | PyPDF2 | PDF text extraction |
+---
 
 ## 🏗️ Architecture
 
 ```
 User (Streamlit UI)
     ↓
-Research Agent (decides which tool to use)
-    ↓
-    ├─→ Document Search Tool → Vector Store (Chroma)
-    ├─→ Web Search Tool → DuckDuckGo API
-    └─→ Summarization Tool
-    ↓
-Synthesis Chain (combines sources)
-    ↓
-LLM (Groq) generates answer
-    ↓
-Conversation Memory (tracks context)
-    ↓
-Response with citations → User
+┌─────────────────────────────────────────┐
+│  Simple Mode          Agent Mode        │
+│  (Conversational      (ReAct Agent)     │
+│   RAG Chain)              ↓             │
+│       ↓           ┌──────┴──────┐       │
+│       │           ↓      ↓      ↓       │
+│       │      Doc Search  Web  Summarize │
+└───────┼───────────┼──────┼──────┼───────┘
+        ↓           ↓      ↓      ↓
+    ChromaDB    ChromaDB Tavily ChromaDB
+        ↓
+  LLM (Groq llama-3.3-70b-versatile)
+        ↓
+  Conversation Memory
+        ↓
+  Response with citations → User
 ```
+
+---
 
 ## 📂 Project Structure
 
 ```
 research-assistant/
 ├── src/
-│   ├── agent/              # Research agent with ReAct logic
-│   ├── tools/              # Tools for doc search, web search, summarization
-│   ├── chains/             # QA, conversational, and synthesis chains
-│   ├── processing/         # Document loading, splitting, and embedding
-│   ├── vectorstore/        # Chroma DB operations
-│   ├── memory/             # Conversation context management
-│   └── utils/              # Helper functions and configurations
+│   ├── agent/              # ResearchAgent (ReAct) + AgentConfig
+│   ├── tools/              # document_search, web_search, summarization
+│   ├── chains/             # conversational.py, retrieval_qa.py
+│   ├── processing/         # PDF loader, text splitter, embeddings pipeline
+│   ├── vectorstore/        # ChromaDB wrapper
+│   ├── memory/             # ConversationMemoryManager
+│   └── utils/              # config, llm, prompts, formatters
 ├── app/
-│   └── streamlit_app.py    # Main UI application
+│   ├── streamlit_app.py    # Main entry point
+│   ├── components/         # chat_interface, sidebar, document_viewer
+│   └── utils/              # state_manager, ui_helpers
 ├── data/
-│   ├── uploaded/           # Directory for user uploaded PDFs
-│   └── vectorstore/        # Persisted Vector DB
-├── tests/                  # Unit tests
-├── .env                    # Environment variables (API keys)
-├── pyproject.toml          # Project metadata and dependencies (uv)
-└── uv.lock                 # Locked dependency versions
+│   ├── temp_uploads/       # Uploaded PDFs (session)
+│   └── vectorstore/        # ChromaDB index
+├── notebooks/              # Jupyter experiments
+├── .streamlit/
+│   └── config.toml         # Streamlit server + theme config
+├── config.yaml             # LLM, embeddings, vectorstore settings
+├── requirements.txt        # Production dependencies
+├── pyproject.toml          # Project metadata (uv)
+└── .env                    # API keys (local only, not committed)
 ```
 
-## 💡 Example Usage
+---
 
-1. **Upload**: User uploads research papers (PDFs) via the Streamlit UI.
-2. **Indexer**: The system processes and indexes documents for semantic search.
-3. **Query**: User asks, "What are the main findings regarding X?"
-4. **Retrieval**: The agent searches documents and provides an answer with citations.
-5. **Deep Dive**: User asks about recent developments. The agent detects the need for external info, searches the web, and synthesizes it with document data.
-6. **Export**: User downloads a complete research report containing the entire session's findings.
+## 📦 Local Setup
 
-## 📦 Getting Started
+### Prerequisites
+- Python 3.11
+- [uv](https://github.com/astral-sh/uv) package manager
+- [Groq API key](https://console.groq.com/keys) (free)
+- [Tavily API key](https://tavily.com) (free — 1000 searches/month)
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/yourusername/research-assistant.git
-   cd research-assistant
-   ```
+### Steps
 
-2. **Install uv** (if not already installed)
-   ```bash
-   pip install uv
-   ```
+```bash
+# 1. Clone
+git clone https://github.com/yourusername/research-assistant.git
+cd research-assistant
 
-3. **Install dependencies**
-   ```bash
-   uv sync
-   ```
-   This will create a `.venv` virtual environment with Python 3.11 and install all dependencies from `pyproject.toml`.
+# 2. Install dependencies
+uv sync
 
-4. **Configure API Keys**
-   Create a `.env` file and add your keys (e.g., GROQ_API_KEY).
+# 3. Create .env
+echo GROQ_API_KEY=your_key_here >> .env
+echo TAVILY_API_KEY=your_key_here >> .env
 
-5. **Run the App**
-   ```bash
-   uv run streamlit run app/streamlit_app.py
-   ```
-   Or activate the environment first:
-   ```bash
-   # On Windows:
-   .venv\Scripts\activate
-   # On macOS/Linux:
-   source .venv/bin/activate
-   
-   streamlit run app/streamlit_app.py
-   ```
-
-## ⚠️ Current Limitations
-
-- **Authentication**: Single-user local instance only.
-- **File Support**: Currently supports PDF files only.
-- **Deployment**: Designed for local execution.
+# 4. Run
+uv run streamlit run app/streamlit_app.py
+```
 
 ---
-*Note: This is an initial version of the project documentation.*
+
+## ☁️ Deployment
+
+Deployed on **Streamlit Community Cloud**.
+
+🌐 [research-assistantgit-mmgpmwqhp9bnhhpzy64yrh.streamlit.app](https://research-assistantgit-mmgpmwqhp9bnhhpzy64yrh.streamlit.app/)
+
+To deploy your own instance:
+1. Push this repo to GitHub
+2. Go to [share.streamlit.io](https://share.streamlit.io) → New app
+3. Set main file: `app/streamlit_app.py`
+4. Add secrets (`GROQ_API_KEY`, `TAVILY_API_KEY`) in App Settings → Secrets
+
+> **Note:** Streamlit Cloud has no persistent storage. Uploaded PDFs and the vector store reset on each restart — users need to re-upload documents per session.
+
+---
+
+## ⚠️ Limitations
+
+- PDF files only (no Word, Excel, etc.)
+- Single-user (no authentication)
+- No persistent storage on Streamlit Cloud (re-upload needed after restart)
+- Groq free tier has rate limits (TPM/RPM)
